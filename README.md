@@ -1,58 +1,41 @@
-# Recipe Box — Frontend
+# Recipe Box API
 
-A small Next.js (App Router + TypeScript) frontend for the Recipe Box API.
-Register, log in, and manage your own recipes — talks to the FastAPI backend over a JWT-authenticated REST API.
+A small REST API for managing personal recipes — built with FastAPI as a way to get hands-on with backend fundamentals: authentication, ORM modeling, and writing an API that's actually safe to use, not just functional.
+
+Users register, log in, and get a JWT token that lets them create, read, update, and delete their own recipes. Other people's recipes are completely inaccessible — not just hidden in the UI, but unreachable at the API level even if you know the exact ID.
+
+**Live counterpart:** this pairs with a [Next.js frontend](https://github.com/Muhammad-Sarib-Ibrahim/recipe-box-frontend) that talks to this API.
+
+## Why I built it this way
+
+I wanted something small enough to finish quickly but that still touched the parts of backend development that actually come up in real jobs: hashing passwords properly, issuing and verifying JWTs, separating what the database stores from what the API exposes, and writing tests that prove the security model works rather than just asserting status codes.
+
+A few decisions I made on purpose, worth mentioning if it comes up:
+
+- **Ownership checks return 404, not 403.** If you try to access someone else's recipe by ID, the API says "not found" rather than "forbidden" — so it never confirms that a recipe with that ID exists at all.
+- **API request/response shapes are separate from the database models.** The database stores a hashed password; the API response for a user never includes it, because the response is built from a different schema entirely, not the raw database object.
+- **`ingredients` is a plain string, not a normalized table.** A fully relational ingredients model felt like more complexity than this project needed to prove its point, so I kept it simple on purpose.
 
 ## Stack
 
-- **Next.js** (App Router)
-- **TypeScript**
-- **Tailwind CSS**
-- React Context for auth state (JWT stored in `localStorage`)
+FastAPI, SQLModel (SQLAlchemy + Pydantic) over SQLite, bcrypt for password hashing, python-jose for JWTs, pytest for tests.
 
-## Setup
-
-Make sure the backend (recipe-api) is running first at `http://localhost:8000`.
+## Running it locally
 
 ```bash
-npm install
-npm run dev
+git clone https://github.com/Muhammad-Sarib-Ibrahim/recipe-box-api.git
+cd recipe-box-api
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
 ```
 
-Visit `http://localhost:3000`. Register an account, log in, and you'll land on `/recipes`
-where you can add, edit, and delete your own recipes.
+Then open `http://localhost:8000/docs` — that's FastAPI's auto-generated Swagger UI. You can register, log in, copy the token it gives you into the "Authorize" button, and try every endpoint right from the browser.
 
-The API URL is configurable via `.env.local`:
+Run the tests with:
 
-```
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
-## Project structure
-
-```
-app/
-├── page.tsx                # Login / register
-├── recipes/
-│   ├── page.tsx              # List + create recipes (protected)
-│   └── [id]/page.tsx          # View, edit, delete a single recipe (protected)
-└── layout.tsx                 # Wraps the app in AuthProvider + Navbar
-lib/
-├── api.ts                     # Typed fetch wrapper for the backend API
-└── auth-context.tsx            # React Context for the JWT + login/logout
-components/
-└── Navbar.tsx
+```bash
+pytest tests/ -v
 ```
 
-## How auth works here
-
-On login, the backend returns a JWT. The frontend stores it in `localStorage` via
-`AuthProvider` (`lib/auth-context.tsx`) and attaches it as an `Authorization: Bearer <token>`
-header on every request to a protected endpoint (see `lib/api.ts`). Protected pages
-(`/recipes`, `/recipes/[id]`) check for a token on mount and redirect to `/` if missing.
-
-## Notes
-
-- This is a learning/portfolio project — `localStorage` for token storage is simple and fine
-  here, but a production app would likely use an httpOnly cookie to reduce XSS exposure.
-- CORS must be enabled on the backend for this to work — see `app/main.py` in the backend repo.
+## How it's structured
