@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
+}
+
+body {
+  font-family: var(--font-sans);
+}
