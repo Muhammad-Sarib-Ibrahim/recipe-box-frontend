@@ -33,6 +33,7 @@ The backend URL is configurable in `.env.local`:
 NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ## How it's structured
+
 app/
 ├── page.tsx                 # login / register
 ├── recipes/
