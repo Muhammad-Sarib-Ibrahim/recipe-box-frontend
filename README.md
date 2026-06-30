@@ -1,41 +1,54 @@
-# Recipe Box API
+# Recipe Box — Frontend
 
-A small REST API for managing personal recipes — built with FastAPI as a way to get hands-on with backend fundamentals: authentication, ORM modeling, and writing an API that's actually safe to use, not just functional.
-
-Users register, log in, and get a JWT token that lets them create, read, update, and delete their own recipes. Other people's recipes are completely inaccessible — not just hidden in the UI, but unreachable at the API level even if you know the exact ID.
-
-**Live counterpart:** this pairs with a [Next.js frontend](https://github.com/Muhammad-Sarib-Ibrahim/recipe-box-frontend) that talks to this API.
+A small Next.js frontend for [Recipe Box API](https://github.com/Muhammad-Sarib-Ibrahim/recipe-box-api), built to get comfortable with TypeScript and the App Router after working mostly in Python. Register, log in, and manage your own recipes — nothing fancy, just a clean example of a frontend talking to a real authenticated backend.
 
 ## Why I built it this way
 
-I wanted something small enough to finish quickly but that still touched the parts of backend development that actually come up in real jobs: hashing passwords properly, issuing and verifying JWTs, separating what the database stores from what the API exposes, and writing tests that prove the security model works rather than just asserting status codes.
+The backend already existed as a tested API, so this was a chance to focus entirely on the frontend side of a flow I already understood from the API: register, log in, store the token, attach it to every request, handle the redirect logic when someone isn't logged in.
 
-A few decisions I made on purpose, worth mentioning if it comes up:
+A couple of things worth pointing out:
 
-- **Ownership checks return 404, not 403.** If you try to access someone else's recipe by ID, the API says "not found" rather than "forbidden" — so it never confirms that a recipe with that ID exists at all.
-- **API request/response shapes are separate from the database models.** The database stores a hashed password; the API response for a user never includes it, because the response is built from a different schema entirely, not the raw database object.
-- **`ingredients` is a plain string, not a normalized table.** A fully relational ingredients model felt like more complexity than this project needed to prove its point, so I kept it simple on purpose.
+- **The token lives in a React Context (`AuthProvider`), backed by `localStorage`.** Every page that needs to know "is someone logged in" reads from this one place instead of each page managing its own auth state.
+- **API calls go through a single typed client (`lib/api.ts`)** rather than scattering `fetch` calls across every page. Each function mirrors one backend endpoint and returns a typed result, so a typo in a field name shows up as a TypeScript error instead of a runtime bug.
+- **Protected pages check auth status after the initial load, not during it** — `localStorage` doesn't exist during server-side rendering, so the auth check has to happen client-side, after the page mounts. Getting the loading state right here (so logged-in users don't get bounced to the login page on every refresh) was one of the trickier parts of the App Router model coming from a typical Python web framework.
 
 ## Stack
 
-FastAPI, SQLModel (SQLAlchemy + Pydantic) over SQLite, bcrypt for password hashing, python-jose for JWTs, pytest for tests.
+Next.js (App Router), TypeScript, Tailwind CSS.
 
 ## Running it locally
 
-```bash
-git clone https://github.com/Muhammad-Sarib-Ibrahim/recipe-box-api.git
-cd recipe-box-api
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-Then open `http://localhost:8000/docs` — that's FastAPI's auto-generated Swagger UI. You can register, log in, copy the token it gives you into the "Authorize" button, and try every endpoint right from the browser.
-
-Run the tests with:
+Make sure the [backend](https://github.com/Muhammad-Sarib-Ibrahim/recipe-box-api) is running first at `http://localhost:8000`.
 
 ```bash
-pytest tests/ -v
+git clone https://github.com/Muhammad-Sarib-Ibrahim/recipe-box-frontend.git
+cd recipe-box-frontend
+npm install
+npm run dev
 ```
+
+Open `http://localhost:3000`, register an account, and you'll land on your (empty) recipe list.
+
+The backend URL is configurable in `.env.local`:
+NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ## How it's structured
+app/
+├── page.tsx                 # login / register
+├── recipes/
+│   ├── page.tsx                # list + create recipes (protected)
+│   └── [id]/page.tsx             # view, edit, delete a single recipe (protected)
+└── layout.tsx                    # wraps the app in AuthProvider + Navbar
+lib/
+├── api.ts                          # typed client for the backend API
+└── auth-context.tsx                 # the JWT, login/logout, loading state
+components/
+└── Navbar.tsx
+
+## A note on the auth approach
+
+Storing the JWT in `localStorage` is the simplest option and fine for a project like this, but it's not what I'd reach for in production — an httpOnly cookie is more resistant to XSS, since `localStorage` is readable by any script running on the page. Worth mentioning since it's the kind of tradeoff that's easy to gloss over if you've only ever built the happy path.
+
+## What I'd add next
+
+Optimistic UI updates instead of waiting on every request, and probably a proper loading skeleton instead of the current plain-text "Loading…" state.
