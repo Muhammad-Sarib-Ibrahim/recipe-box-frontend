@@ -30,10 +30,14 @@ npm run dev
 Open `http://localhost:3000`, register an account, and you'll land on your (empty) recipe list.
 
 The backend URL is configurable in `.env.local`:
+
+```
 NEXT_PUBLIC_API_URL=http://localhost:8000
+```
 
 ## How it's structured
 
+```
 app/
 ├── page.tsx                 # login / register
 ├── recipes/
@@ -45,6 +49,7 @@ lib/
 └── auth-context.tsx                 # the JWT, login/logout, loading state
 components/
 └── Navbar.tsx
+```
 
 ## A note on the auth approach
 
